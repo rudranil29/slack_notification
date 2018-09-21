@@ -1,0 +1,5 @@
+name = Drupal log Slack Notification 
+description = Log Drupal error on Slack channel
+core = 7.x
+package = Slack
+files[] = slackNotification.module

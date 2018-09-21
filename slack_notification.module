@@ -1,0 +1,127 @@
+<?php
+/**
+ * @file
+ * Module file for slack_notification Module
+ */
+
+
+
+/**
+ * Implements hook_menu().
+ */
+function slack_notification_menu() {
+
+    $items['admin/config/development/slacknotification'] = array(
+        'title' => 'Drupal Slack notification ',
+        'description' => 'Drupal log notification on slack',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array(
+            'slack_notification_form'
+        ),
+        'access arguments' => array(
+            'administer users'
+        ),
+        'type' => MENU_NORMAL_ITEM,
+        'access callback' => TRUE,
+    );
+    
+    return $items;
+}
+
+/**
+ * Implements hook_form().
+ */
+function slack_notification_form($form, &$form_state) {
+    
+    $form['slack_webhook']      = array(
+        '#type' => 'textarea',
+        '#title' => t('Slack Webhook'),
+        '#default_value' => variable_get('slack_webhook'),
+        '#rows' => 5,
+        '#required' => TRUE
+    );
+    $form['footer_message']     = array(
+        '#type' => 'textfield',
+        '#title' => t('Custom Footer Message'),
+        '#default_value' => variable_get('footer_message'),
+        '#required' => TRUE
+    );
+    $form['slack_border_color'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Slack Border Color'),
+        '#default_value' => variable_get('slack_border_color'),
+        '#required' => FALSE
+    );
+    $form['footer_image']       = array(
+        '#type' => 'textfield',
+        '#title' => t('Image url'),
+        '#default_value' => variable_get('footer_image'),
+        '#required' => FALSE
+    );
+    return system_settings_form($form);
+}
+
+/**
+ * Implements hook_watchdog().
+ */
+function slack_notification_watchdog(array $log_entry) {
+    
+    if (!empty(variable_get('slack_webhook')) && !empty(variable_get('slack_webhook'))) {
+        $severity_list = array(
+            WATCHDOG_EMERGENCY => t('Emergency'),
+            WATCHDOG_ALERT => t('Alert'),
+            WATCHDOG_CRITICAL => t('Critical'),
+            WATCHDOG_ERROR => t('Error'),
+            WATCHDOG_WARNING => t('Warning'),
+            WATCHDOG_NOTICE => t('Notice'),
+            WATCHDOG_INFO => t('Info'),
+            WATCHDOG_DEBUG => t('Debug')
+        );
+        define('SLACK_WEBHOOK', variable_get('slack_webhook'));
+        $msg = t($log_entry['message'], ($log_entry['variables'])) . PHP_EOL . $log_entry['request_uri'] . PHP_EOL . $log_entry['referer'];
+        $message = array(
+            'payload' => json_encode(array(
+                'attachments' => array(
+                    0 => array(
+                        'color' => variable_get('slack_border_color'),
+                        'pretext' => variable_get('site_name', 'Drupal 7'),
+                        'author_name' => $log_entry['user']->name,
+                        'title' => $severity_list[$log_entry['severity']],
+                        'text' => strip_tags($msg),
+                        'fields' => array(
+                            0 => array(
+                                'title' => 'Priority',
+                                'value' => 'High',
+                                'short' => false
+                            )
+                        ),
+                        'footer' => variable_get('footer_message'),
+                        'footer_icon' => variable_get('footer_image'),
+                        'ts' => $log_entry['timestamp']
+                    )
+                )
+            ))
+        );
+        // Use curl to send your message
+        $c       = curl_init(SLACK_WEBHOOK);
+        curl_setopt($c, CURLOPT_SSL_VERIFYPEER, FALSE);
+        curl_setopt($c, CURLOPT_POST, TRUE);
+        curl_setopt($c, CURLOPT_POSTFIELDS, $message);
+        curl_setopt($c, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_exec($c);
+        curl_close($c);
+        
+    }
+}
+
+/**
+ * Implements hook_watchdog().
+ */
+function slack_notification_uninstall() {
+    
+    variable_del('slack_webhook');
+    variable_del('footer_message');
+    variable_del('slack_border_color');
+    variable_del('footer_image');
+
+}
