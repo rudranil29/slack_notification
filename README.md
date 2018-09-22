@@ -10,7 +10,7 @@ Installation
 2. Install the module 
 3. Go to Configuration-> development -> Druapl slack Notification (<baseurl>/admin/config/development/slacknotification).
 4. On that form, there will be some fields
-    i). Slack Webhook - provide slack Webhook, go to slack api and create a app and paste your webhook here,
+    i). Slack Webhook - provide slack Webhook, go to slack api and create a app and paste your incoming webhook here,
     ii). Custom footer message - provide custom message whatever you feel
     iii). Slack Border Color - Provide color code for your color example(#fffff)
     iv). Image url - provide any image url here.
